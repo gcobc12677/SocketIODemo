@@ -12,10 +12,8 @@ export function addSocketIO(app) {
   const userList = [];
 
   io.on('connection', (socket) => {
-    // userList.push(socket.handshake.query.name || socket.id);
     io.emit('connected', {
-      content: `-- [ ${socket.handshake.query.name || socket.id} ] joined the chat room --`,
-      list: userList,
+      content: `-- [ ${socket.handshake.query.name || 'new user'} ] joined the chat room --`,
     });
     socket.on('join', data => {
       console.log(data);
@@ -29,10 +27,15 @@ export function addSocketIO(app) {
         if (!(_.find(userList, user => user.id === payloads.id))) {
         console.log(`add user id=${payloads.id}`);
           userList.push({
+            socketId: socket.id,
             aclActions: payloads.actions,
             payloads,
           });
         }
+
+        io.emit('checkUser', {
+          list: userList,
+        });
       });
     });
     socket.on('send', data => {
@@ -56,7 +59,7 @@ export function addSocketIO(app) {
       });
     });
     socket.on('disconnect', () => {
-      const leaveIndex = userList.findIndex((s) => s === socket.handshake.query.name);
+      const leaveIndex = userList.findIndex((s) => s.socketId === socket.id);
       if (leaveIndex >= 0) userList.splice(leaveIndex, 1);
 
       io.emit('disconnection', {
